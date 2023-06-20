@@ -48,50 +48,45 @@ func (view *Bank) ViewCustomers() {
 
 }
 
-func (numcheck *Bank) FindCustomer(accno int) Customer {
-
-	var val Customer
-	for _, value := range numcheck.Cust {
-		//Output 1
-		//fmt.Println("numcheck->", numcheck, "  value->", value)
-		//numcheck-> &{[{miche {123 3434}} {tha {456 454545}}]}   value-> {miche {123 3434}}
-		//numcheck-> &{[{miche {123 3434}} {tha {456 454545}}]}   value-> {tha {456 454545}}
-		//Output 2
-		// fmt.Println("index->", index, "  value->", value)
-		// index-> 0   value-> {mich {123 343434}}
-		// index-> 1   value-> {tha {456 454545}}
-		if value.Acc.AccountNum == accno {
-			// fmt.Println("####---->", value.Acc.AccountNum)  output : 123
-			// fmt.Println("index->", index, " value->", value)
-			val = value
-			fmt.Println("You have accessed the details of customer = ", value.Name)
-
+func FindCustomer(cust []Customer, acnum int) *Customer {
+	var temp *Customer
+	for i := range cust {
+		if cust[i].Acc.AccountNum == acnum {
+			fmt.Println("Showing the information of customer", cust[i].Name)
+			temp = &cust[i]
 		}
-		// else {
-		// 	fmt.Println("Account Number you entered is invalid.")
-		// 	fmt.Println("----------------------------------------------------------------------------")
 	}
-	// fmt.Println("val---->", val)
-	//output : val----> {tha {2 3.2423432e+07}}
-	return val
+	fmt.Println("temp--->", temp)
+	return temp
 }
 
-func (withdraw *Account) AmountWithdraw(bal Customer, val float64) {
-	newBalance := bal.Acc.Balance - val
-	if withdraw.AccountNum == bal.Acc.AccountNum {
-		withdraw.Balance = newBalance
-	}
-	fmt.Println("the balance detail we got ->", bal)
-	fmt.Println("the balance detail amount we got ->", bal.Acc.Balance)
-	// the balance detail we got -> {mi {123 300}}
-	// the balance detail amount we got -> 300
-	// fmt.Println("The total account balance after withdraw is", bal.Acc.Balance-val)
+func (withdraw *Customer) AmountWithdraw(val float64) {
+	withdraw.Acc.Balance -= val
+	fmt.Println("Withdraw successful!")
+	fmt.Printf("The account balance after withdrawal is %.2f\n", withdraw.Acc.Balance)
 	fmt.Println("----------------------------------------------------------------------------")
 
 }
 
-func AmountDeposit(detail Customer, val float64) {
+func (deposit *Customer) AmountDeposit(val float64) {
+	deposit.Acc.Balance += val
+	fmt.Println("Withdraw successful!")
+	fmt.Printf("The account balance after withdrawal is %.2f\n", deposit.Acc.Balance)
+	fmt.Println("----------------------------------------------------------------------------")
+}
 
+func (remove *Bank) CloseAccount(accountNumber int) {
+	for i, customer := range remove.Cust {
+		if customer.Acc.AccountNum == accountNumber {
+			//remove the customer from the slice
+			remove.Cust = append(remove.Cust[:i], remove.Cust[i+1:]...)
+			fmt.Println("Account closed successfully.")
+			fmt.Println("----------------------------------------------------------------------------")
+
+			return
+		}
+	}
+	fmt.Println("Account not found.")
 }
 
 func main() {
@@ -135,16 +130,12 @@ func main() {
 			bank.ViewCustomers()
 
 		case 3:
-			acc := Account{}
 			fmt.Println("Enter the bank account of customer to make changes:")
 			fmt.Scanln(&accno)
-			found := bank.FindCustomer(accno)
-			fmt.Println("found data->", found)
-			fmt.Println("----------------------------------------------------------------------------")
+			selectedCustomer := FindCustomer(bank.Cust, accno)
 
 			for {
-				var withdraw float64
-				var deposit float64
+				var amount float64
 
 				//for to iterate to use the following options
 				fmt.Println("Choose from the following options:")
@@ -160,22 +151,28 @@ func main() {
 				switch option {
 				case 1:
 					fmt.Println("Enter the amount you want to withdraw:")
-					fmt.Scan(&withdraw)
-					acc.AmountWithdraw(found, withdraw)
+					fmt.Scan(&amount)
+					selectedCustomer.AmountWithdraw(amount)
 
 				case 2:
 					fmt.Println("Enter the amount you want to deposit:")
-					fmt.Scan(&deposit)
-					AmountDeposit(found, deposit)
+					fmt.Scan(&amount)
+					selectedCustomer.AmountDeposit(amount)
 
 				case 3:
-					fmt.Println("The bank balance is ", found.Acc.Balance)
+					fmt.Println("The bank balance is ", selectedCustomer.Acc.Balance)
 					fmt.Println("----------------------------------------------------------------------------")
+
+				case 4:
+					bank.CloseAccount(accno)
 
 				case 5:
 					fmt.Println("----------------------------------------------------------------------------")
-					return
+					break
 
+				}
+				if option == 5 {
+					break
 				}
 			}
 
