@@ -10,17 +10,25 @@ type Bank struct {
 
 type Customer struct {
 	//initializing info in struct
-	Name    string
-	Account int
-	Balance float64
+	Name string
+	Acc  Account
+	// AccountNum int
+	// Balance float64
+}
+
+type Account struct {
+	AccountNum int
+	Balance    float64
 }
 
 func (add *Bank) AddCustomer(customerName string, accountNumber int, startingBalance float64) {
 	//* as value is shared to store in slice Customer
 	addCustomer := Customer{
-		Name:    customerName,
-		Account: accountNumber,
-		Balance: startingBalance,
+		Name: customerName,
+		Acc: Account{
+			AccountNum: accountNumber,
+			Balance:    startingBalance,
+		},
 	}
 	add.Cust = append(add.Cust, addCustomer)
 	fmt.Println("Customer added successfully.")
@@ -32,12 +40,41 @@ func (view *Bank) ViewCustomers() {
 	for _, value := range view.Cust {
 		//loop through customer to print info
 		fmt.Printf("Customer : %s\n", value.Name)
-		fmt.Printf("Account number: %d\n", value.Account)
-		fmt.Printf("Account Balance: %.2f\n", value.Balance)
+		fmt.Printf("Account number: %d\n", value.Acc.AccountNum)
+		fmt.Printf("Account Balance: %.2f\n", value.Acc.Balance)
 		fmt.Println("-----------------------------------")
 	}
 	fmt.Println("----------------------------------------------------------------------------")
 
+}
+
+func (numcheck *Bank) FindCustomer(accno int) Customer {
+
+	var val Customer
+	for _, value := range numcheck.Cust {
+		//Output 1
+		//fmt.Println("numcheck->", numcheck, "  value->", value)
+		//numcheck-> &{[{miche {123 3434}} {tha {456 454545}}]}   value-> {miche {123 3434}}
+		//numcheck-> &{[{miche {123 3434}} {tha {456 454545}}]}   value-> {tha {456 454545}}
+		//Output 2
+		// fmt.Println("index->", index, "  value->", value)
+		// index-> 0   value-> {mich {123 343434}}
+		// index-> 1   value-> {tha {456 454545}}
+		if value.Acc.AccountNum == accno {
+			// fmt.Println("####---->", value.Acc.AccountNum)  output : 123
+			// fmt.Println("index->", index, " value->", value)
+			val = value
+			fmt.Println("You have accessed the details of customer = ", value.Name)
+			fmt.Println("----------------------------------------------------------------------------")
+
+		}
+		// else {
+		// 	fmt.Println("Account Number you entered is invalid.")
+		// 	fmt.Println("----------------------------------------------------------------------------")
+	}
+	fmt.Println("val---->", val)
+	//output : val----> {tha {2 3.2423432e+07}}
+	return val
 }
 
 func main() {
@@ -58,6 +95,7 @@ func main() {
 		var customerName string
 		var accountNumber int
 		var startingBalance float64
+		var accno int
 
 		//use switch stmt
 		switch choice {
@@ -81,6 +119,8 @@ func main() {
 
 		case 3:
 			fmt.Println("Enter the bank account of customer to make changes:")
+			fmt.Scanln(&accno)
+			bank.FindCustomer(accno)
 
 		case 4:
 			fmt.Println("You are exisiting from Banking Application.")
