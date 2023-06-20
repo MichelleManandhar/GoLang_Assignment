@@ -4,7 +4,7 @@ package main
 import "fmt"
 
 type Bank struct {
-	//field called Customers which has slie of ustomer object
+	//field called Customers which has slice of ustomer object
 	Cust []Customer
 }
 
@@ -65,16 +65,33 @@ func (numcheck *Bank) FindCustomer(accno int) Customer {
 			// fmt.Println("index->", index, " value->", value)
 			val = value
 			fmt.Println("You have accessed the details of customer = ", value.Name)
-			fmt.Println("----------------------------------------------------------------------------")
 
 		}
 		// else {
 		// 	fmt.Println("Account Number you entered is invalid.")
 		// 	fmt.Println("----------------------------------------------------------------------------")
 	}
-	fmt.Println("val---->", val)
+	// fmt.Println("val---->", val)
 	//output : val----> {tha {2 3.2423432e+07}}
 	return val
+}
+
+func (withdraw *Account) AmountWithdraw(bal Customer, val float64) {
+	newBalance := bal.Acc.Balance - val
+	if withdraw.AccountNum == bal.Acc.AccountNum {
+		withdraw.Balance = newBalance
+	}
+	fmt.Println("the balance detail we got ->", bal)
+	fmt.Println("the balance detail amount we got ->", bal.Acc.Balance)
+	// the balance detail we got -> {mi {123 300}}
+	// the balance detail amount we got -> 300
+	// fmt.Println("The total account balance after withdraw is", bal.Acc.Balance-val)
+	fmt.Println("----------------------------------------------------------------------------")
+
+}
+
+func AmountDeposit(detail Customer, val float64) {
+
 }
 
 func main() {
@@ -118,9 +135,49 @@ func main() {
 			bank.ViewCustomers()
 
 		case 3:
+			acc := Account{}
 			fmt.Println("Enter the bank account of customer to make changes:")
 			fmt.Scanln(&accno)
-			bank.FindCustomer(accno)
+			found := bank.FindCustomer(accno)
+			fmt.Println("found data->", found)
+			fmt.Println("----------------------------------------------------------------------------")
+
+			for {
+				var withdraw float64
+				var deposit float64
+
+				//for to iterate to use the following options
+				fmt.Println("Choose from the following options:")
+				fmt.Println("1. Withdraw money")
+				fmt.Println("2. Deposit money")
+				fmt.Println("3. Print Balance")
+				fmt.Println("4. Close the account")
+				fmt.Println("5. Exit")
+
+				var option int
+				fmt.Scanln(&option)
+
+				switch option {
+				case 1:
+					fmt.Println("Enter the amount you want to withdraw:")
+					fmt.Scan(&withdraw)
+					acc.AmountWithdraw(found, withdraw)
+
+				case 2:
+					fmt.Println("Enter the amount you want to deposit:")
+					fmt.Scan(&deposit)
+					AmountDeposit(found, deposit)
+
+				case 3:
+					fmt.Println("The bank balance is ", found.Acc.Balance)
+					fmt.Println("----------------------------------------------------------------------------")
+
+				case 5:
+					fmt.Println("----------------------------------------------------------------------------")
+					return
+
+				}
+			}
 
 		case 4:
 			fmt.Println("You are exisiting from Banking Application.")
