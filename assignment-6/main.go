@@ -7,7 +7,6 @@ import (
 
 type Ecommerce struct {
 	Inv Inventory
-	Car Cart
 }
 
 type Items struct {
@@ -18,10 +17,13 @@ type Items struct {
 
 type Inventory struct {
 	Item []Items
+	Cart []Carts
 }
 
-type Cart struct {
-	Item []Items
+type Carts struct {
+	ID      int
+	Product string
+	Price   float64
 }
 
 func (insert *Inventory) InsertItems() {
@@ -76,21 +78,28 @@ func (search *Inventory) SearchItems(pattern string) {
 	}
 }
 
-func (cart *Ecommerce) AddToCart(id int) {
-	fmt.Println("The value of the id ---->", id)
-	for item, value := range cart.Inv.Item {
-		if value.ID == id {
-			cart.Car.Item = append(cart.Car.Item, value)
-			fmt.Printf("Added %s to the cart.\n", value.Product)
+func (val *Inventory) AddToCart(itemId int) {
+	for _, item := range val.Item {
+		// fmt.Println("cart item-->", a, "  value", item)
+		if item.ID == itemId {
+			val.Cart = append(val.Cart, Carts(item))
+			fmt.Printf("Added %s to the cart.\n", item.Product)
+			return
 		}
-		fmt.Println("search inventory item-->", item, "  value", value)
 	}
-	fmt.Println("Exited the function")
+	fmt.Println("Item not found.")
+}
+
+func (bill *Inventory) TotalBill() float64 {
+	var amount float64
+	for _, item := range bill.Cart {
+		amount += item.Price
+	}
+	return amount
 }
 
 func main() {
 	inv := Inventory{}
-	app := Ecommerce{}
 	fmt.Println("**********Welcome to the E-commerce Application**********")
 	//Function to insert the items
 	inv.InsertItems()
@@ -107,15 +116,15 @@ func main() {
 	// To search for items that end with the letter "s": .*s$
 
 	for {
-		var cartItem int
+		var itemId int
 		fmt.Print("Enter the item ID to add to cart or press 0 to exit:")
-		fmt.Scanln(&cartItem)
-		if cartItem == 0 {
+		fmt.Scanln(&itemId)
+		if itemId == 0 {
 			break
 		}
-		fmt.Println("before")
-		app.AddToCart(cartItem)
-		fmt.Println("after")
+		inv.AddToCart(itemId)
 	}
-	fmt.Println("Outside the function")
+
+	totalAmt := inv.TotalBill()
+	fmt.Println("The total bill is $", totalAmt)
 }
