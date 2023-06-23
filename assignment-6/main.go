@@ -66,6 +66,7 @@ func (view *Inventory) DisplayItems() {
 }
 
 func (search *Inventory) SearchItems(pattern string) {
+	//search based on regexp example : ^A.*, .*shirt.*, .*s$
 	fmt.Println("The search result:")
 	for _, value := range search.Item {
 		matched, _ := regexp.MatchString(pattern, value.Product)
@@ -79,6 +80,7 @@ func (search *Inventory) SearchItems(pattern string) {
 }
 
 func (val *Inventory) AddToCart(itemId int) {
+	//adding selected item to cart where the user inputs itemId
 	for _, item := range val.Item {
 		// fmt.Println("cart item-->", a, "  value", item)
 		if item.ID == itemId {
@@ -91,6 +93,7 @@ func (val *Inventory) AddToCart(itemId int) {
 }
 
 func (bill *Inventory) TotalBill() float64 {
+	//adding up the total that was added to the cart
 	var amount float64
 	for _, item := range bill.Cart {
 		amount += item.Price
@@ -111,20 +114,18 @@ func main() {
 	fmt.Print("Enter the search pattern:")
 	fmt.Scanln(&pattern)
 	inv.SearchItems(pattern)
-	// 	To search for items that start with the letter "A": ^A.*
-	// To search for items that contain the word "shirt": .*shirt.*
-	// To search for items that end with the letter "s": .*s$
 
 	for {
 		var itemId int
 		fmt.Print("Enter the item ID to add to cart or press 0 to exit:")
 		fmt.Scanln(&itemId)
+		//id selected by the customer to add in the cart
 		if itemId == 0 {
 			break
 		}
 		inv.AddToCart(itemId)
 	}
-
+	//printing the total which is in the cart
 	totalAmt := inv.TotalBill()
 	fmt.Println("The total bill is $", totalAmt)
 }
