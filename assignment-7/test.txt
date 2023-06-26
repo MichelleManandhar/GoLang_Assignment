@@ -1,0 +1,32 @@
+
+package main
+
+import "sync"
+
+import "time"
+
+func w1(ch chan float64) {
+	time.Sleep(1 * time.Second)
+	ch <- 3000
+}
+
+func w2(ch chan float64) {
+	time.Sleep(1 * time.Second)
+	ch <- 3000
+}
+
+func w3(ch chan float64) {
+	time.Sleep(1 * time.Second)
+	ch <- 3000
+}
+
+func main() {
+	worker1 := make(chan float64)
+	worker2 := make(chan float64)
+	worker3 := make(chan float64)
+
+	go w1(worker1)
+	go w2(worker2)
+	go w3(worker3)
+
+}
