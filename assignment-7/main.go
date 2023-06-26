@@ -15,13 +15,13 @@ type Employee struct {
 	Salary int
 }
 
-func updateSalary(emp *Employee, wg *sync.WaitGroup) {
+func updateSalary(emp *Employee, wg *sync.WaitGroup, m *sync.Mutex) {
 	//Each goroutines calls 'Done()' when it completes.
 	defer wg.Done()
-
+	m.Lock()
 	//Increment of the salary
 	emp.Salary += 500
-
+	m.Unlock()
 	fmt.Printf("The updated salary for Employee %s is $%d\n", emp.Name, emp.Salary)
 
 }
@@ -31,6 +31,7 @@ func main() {
 	numWorkers := 3
 	//Wait for a group of goroutines to complete before proceeding.
 	var wg sync.WaitGroup
+	var m sync.Mutex
 	wg.Add(numWorkers) //Adding goroutine to wait group
 
 	//Adding values to the employee struct
@@ -41,18 +42,28 @@ func main() {
 	}
 
 	//Loop through worker i.e. start
+	// for i := 0; i < numWorkers; i++ {
+	// 	//wg.Add(1)
+	// 	go func() {
+	// 		for _, value := range employees {
+	// 			// &wg pointer to sync.WaitGroup and wait for collection of go routine to finish executing.
+	// 			updateSalary(value, &wg, &m)
+
+	// 		}
+	// 	}()
+	// }
 	for i := 0; i < numWorkers; i++ {
 		go func() {
-			for _, value := range employees {
-				// &wg pointer to sync.WaitGroup and wait for collection of go routine to finish executing.
-				updateSalary(value, &wg)
-
+			for _, emp := range employees {
+				// Create a copy of the employee struct
+				employeeCopy := *emp
+				updateSalary(&employeeCopy, &wg, &m)
 			}
 		}()
 	}
 
 	//Allow some time for the goroutines to complete thier work
-	time.Sleep(time.Second)
+	time.Sleep(time.Minute)
 
 	//Wait for all goroutines to finish
 	wg.Wait()
