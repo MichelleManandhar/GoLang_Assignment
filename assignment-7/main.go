@@ -40,7 +40,22 @@ func main() {
 		{Id: 2, Name: "Tharun", Salary: 60000},
 		{Id: 3, Name: "Ram", Salary: 45000},
 	}
+<<<<<<< HEAD
 	
+=======
+
+	//Loop through worker i.e. start
+	// for i := 0; i < numWorkers; i++ {
+	// 	//wg.Add(1)
+	// 	go func() {
+	// 		for _, value := range employees {
+	// 			// &wg pointer to sync.WaitGroup and wait for collection of go routine to finish executing.
+	// 			updateSalary(value, &wg, &m)
+
+	// 		}
+	// 	}()
+	// }
+>>>>>>> 5af8849d7565e5d06b52d1dfee03360f0952014f
 	for i := 0; i < numWorkers; i++ {
 		go func() {
 			for _, emp := range employees {
@@ -57,6 +72,7 @@ func main() {
 	//Wait for all goroutines to finish
 	wg.Wait()
 }
+<<<<<<< HEAD
 
 
 
@@ -85,3 +101,5 @@ func main() {
 	// 		}
 	// 	}()
 	// }
+=======
+>>>>>>> 5af8849d7565e5d06b52d1dfee03360f0952014f
