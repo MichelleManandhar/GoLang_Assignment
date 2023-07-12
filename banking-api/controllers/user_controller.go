@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,32 +26,27 @@ func CreateUser() gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		var user models.User
 		defer cancel()
-		fmt.Println("One")
 
 		//validate the request body
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
-		fmt.Println("Two")
 
 		//use the validator library to validate required fields
 		if validationErr := validate.Struct(&user); validationErr != nil {
 			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
 			return
 		}
-		fmt.Println("Three")
 
 		newUser := models.User{
 			Id:         primitive.NewObjectID(),
 			Name:       user.Name,
 			AccountNum: user.AccountNum,
 			Balance:    user.Balance,
-			Withdraw:   user.Withdraw,
-			Deposit:    user.Deposit,
+			Withdraw:   0,
+			Deposit:    0,
 		}
-		fmt.Println("Four")
-
 		//The collection.InsertOne() method inserts the provided task in the database collection and
 		//returns the ID of the document that was inserted. Here the result is the id.
 		result, err := userCollection.InsertOne(ctx, newUser)
@@ -58,10 +54,7 @@ func CreateUser() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
-		fmt.Println("fIVE")
-
-		c.JSON(http.StatusCreated, responses.UserResponse{Status: http.StatusCreated, Message: "success", Data: map[string]interface{}{"data": result}})
-		fmt.Println("six")
+		c.JSON(http.StatusCreated, responses.UserResponse{Status: http.StatusCreated, Message: "Added user", Data: map[string]interface{}{"data": result}})
 	}
 }
 
@@ -69,21 +62,25 @@ func GetAUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		//a userId variable to get the user’s id from the URL parameter and a user variable.
-		userId := c.Param("ids")
+		userId := c.Param("acc")
 		var user models.User
 		defer cancel()
 
 		//converted the userId from a string to a primitive.ObjectID type, a BSON type MongoDB uses.
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		// objId, _ := primitive.ObjectIDFromHex(userId)
+
+		objId, _ := strconv.Atoi(userId) // Convert the user ID string to an integer
 
 		//listing the documents in a collection can be done using the "collection.Find() method"
 		//which expects a filter as well as a pointer to a value into which the result can be decoded
-		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
+
+		err := userCollection.FindOne(ctx, bson.M{"accountnum": objId}).Decode(&user)
 		if err != nil {
+			fmt.Println("five")
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			fmt.Println("six")
 			return
 		}
-
 		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}})
 	}
 }
@@ -91,10 +88,11 @@ func GetAUser() gin.HandlerFunc {
 func EditUserBalance() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("ids")
+		userId := c.Param("acc")
 		var user models.User
 		defer cancel()
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		// objId, _ := primitive.ObjectIDFromHex(userId)
+		objId, _ := strconv.Atoi(userId)
 
 		//validate the request body
 		if err := c.BindJSON(&user); err != nil {
@@ -109,7 +107,7 @@ func EditUserBalance() gin.HandlerFunc {
 		}
 
 		update := bson.M{"balance": user.Balance}
-		result, err := userCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+		result, err := userCollection.UpdateOne(ctx, bson.M{"accountnum": objId}, bson.M{"$set": update}) //mongodb's accountnum
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
@@ -118,28 +116,29 @@ func EditUserBalance() gin.HandlerFunc {
 		//get updated user details
 		var updatedUser models.User
 		if result.MatchedCount == 1 {
-			err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
+			err := userCollection.FindOne(ctx, bson.M{"accountnum": objId}).Decode(&updatedUser)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 				return
 			}
 		}
 
-		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedUser}})
+		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "Editing success", Data: map[string]interface{}{"data": updatedUser}})
 	}
 }
 
 func DeleteAUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("ids")
+		userId := c.Param("acc")
 		defer cancel()
 
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		// objId, _ := primitive.ObjectIDFromHex(userId)
+		objId, _ := strconv.Atoi(userId)
 
 		//To delete a single task use collection.DeleteOne()method from the MongoDB Driver.
 		//Pass the filter here the objId to match the task item whose text property is set to the string arugument.
-		result, err := userCollection.DeleteOne(ctx, bson.M{"id": objId})
+		result, err := userCollection.DeleteOne(ctx, bson.M{"accountnum": objId})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
@@ -154,7 +153,7 @@ func DeleteAUser() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK,
-			responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": "User successfully deleted!"}},
+			responses.UserResponse{Status: http.StatusOK, Message: "Deleting success", Data: map[string]interface{}{"data": "User successfully deleted!"}},
 		)
 	}
 }
@@ -192,11 +191,12 @@ func GetAllUsers() gin.HandlerFunc {
 func WithdrawBalance() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("ids")
+		userId := c.Param("acc")
 		var user models.User
 		var val = 0
 		defer cancel()
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		// objId, _ := primitive.ObjectIDFromHex(userId)
+		objId, _ := strconv.Atoi(userId)
 
 		//validate the request body
 		if err := c.BindJSON(&user); err != nil {
@@ -211,7 +211,7 @@ func WithdrawBalance() gin.HandlerFunc {
 		}
 
 		update := bson.M{"balance": user.Balance - user.Withdraw, "withdraw": val}
-		result, err := userCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+		result, err := userCollection.UpdateOne(ctx, bson.M{"accountnum": objId}, bson.M{"$set": update})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
@@ -220,25 +220,26 @@ func WithdrawBalance() gin.HandlerFunc {
 		//get updated user details
 		var updatedUser models.User
 		if result.MatchedCount == 1 {
-			err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
+			err := userCollection.FindOne(ctx, bson.M{"accountnum": objId}).Decode(&updatedUser)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 				return
 			}
 		}
 
-		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedUser}})
+		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "Withdraw success", Data: map[string]interface{}{"data": updatedUser}})
 	}
 }
 
 func DepositBalance() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("ids")
+		userId := c.Param("acc")
 		var user models.User
 		var val = 0
 		defer cancel()
-		objId, _ := primitive.ObjectIDFromHex(userId)
+		// objId, _ := primitive.ObjectIDFromHex(userId)
+		objId, _ := strconv.Atoi(userId)
 
 		//validate the request body
 		if err := c.BindJSON(&user); err != nil {
@@ -253,7 +254,7 @@ func DepositBalance() gin.HandlerFunc {
 		}
 
 		update := bson.M{"balance": user.Balance + user.Deposit, "deposit": val}
-		result, err := userCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+		result, err := userCollection.UpdateOne(ctx, bson.M{"accountnum": objId}, bson.M{"$set": update})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
@@ -262,13 +263,13 @@ func DepositBalance() gin.HandlerFunc {
 		//get updated user details
 		var updatedUser models.User
 		if result.MatchedCount == 1 {
-			err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
+			err := userCollection.FindOne(ctx, bson.M{"accountnum": objId}).Decode(&updatedUser)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 				return
 			}
 		}
 
-		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedUser}})
+		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "Deposit success", Data: map[string]interface{}{"data": updatedUser}})
 	}
 }

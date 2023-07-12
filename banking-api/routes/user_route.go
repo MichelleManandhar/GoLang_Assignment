@@ -9,10 +9,10 @@ import (
 func UserRoute(router *gin.Engine) {
 	//All routes related to users comes here
 	router.POST("/user", controllers.CreateUser())
-	router.GET("/user/:ids", controllers.GetAUser())
-	router.PUT("/user/:ids", controllers.EditUserBalance())
-	router.DELETE("/user/:ids", controllers.DeleteAUser())
+	router.GET("/user/:acc", controllers.GetAUser())
+	router.PUT("/user/:acc", controllers.EditUserBalance())
+	router.DELETE("/user/:acc", controllers.DeleteAUser())
 	router.GET("/users", controllers.GetAllUsers())
-	router.PUT("user/withdraw/:ids", controllers.WithdrawBalance())
-	router.PUT("user/deposit/:ids", controllers.DepositBalance())
+	router.PUT("user/withdraw/:acc", controllers.WithdrawBalance())
+	router.PUT("user/deposit/:acc", controllers.DepositBalance())
 }
