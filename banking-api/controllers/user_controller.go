@@ -5,7 +5,6 @@ import (
 	"banking-api/models"
 	"banking-api/responses"
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -76,9 +75,7 @@ func GetAUser() gin.HandlerFunc {
 
 		err := userCollection.FindOne(ctx, bson.M{"accountnum": objId}).Decode(&user)
 		if err != nil {
-			fmt.Println("five")
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
-			fmt.Println("six")
 			return
 		}
 		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": user}})
