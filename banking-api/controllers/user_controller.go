@@ -5,6 +5,7 @@ import (
 	"banking-api/models"
 	"banking-api/responses"
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -20,36 +21,47 @@ var validate = validator.New()
 
 func CreateUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		//Context: like a timeout or deadline that indicates when an operation should stop running and return.
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		var user models.User
 		defer cancel()
+		fmt.Println("One")
 
 		//validate the request body
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
+		fmt.Println("Two")
 
 		//use the validator library to validate required fields
 		if validationErr := validate.Struct(&user); validationErr != nil {
 			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
 			return
 		}
+		fmt.Println("Three")
 
 		newUser := models.User{
 			Id:         primitive.NewObjectID(),
 			Name:       user.Name,
 			AccountNum: user.AccountNum,
 			Balance:    user.Balance,
+			Withdraw:   user.Withdraw,
+			Deposit:    user.Deposit,
 		}
+		fmt.Println("Four")
 
+		//The collection.InsertOne() method inserts the provided task in the database collection and
+		//returns the ID of the document that was inserted. Here the result is the id.
 		result, err := userCollection.InsertOne(ctx, newUser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
+		fmt.Println("fIVE")
 
 		c.JSON(http.StatusCreated, responses.UserResponse{Status: http.StatusCreated, Message: "success", Data: map[string]interface{}{"data": result}})
+		fmt.Println("six")
 	}
 }
 
@@ -57,13 +69,15 @@ func GetAUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		//a userId variable to get the user’s id from the URL parameter and a user variable.
-		userId := c.Param("id")
+		userId := c.Param("ids")
 		var user models.User
 		defer cancel()
 
 		//converted the userId from a string to a primitive.ObjectID type, a BSON type MongoDB uses.
 		objId, _ := primitive.ObjectIDFromHex(userId)
 
+		//listing the documents in a collection can be done using the "collection.Find() method"
+		//which expects a filter as well as a pointer to a value into which the result can be decoded
 		err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
@@ -77,7 +91,7 @@ func GetAUser() gin.HandlerFunc {
 func EditUserBalance() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("id")
+		userId := c.Param("ids")
 		var user models.User
 		defer cancel()
 		objId, _ := primitive.ObjectIDFromHex(userId)
@@ -118,17 +132,20 @@ func EditUserBalance() gin.HandlerFunc {
 func DeleteAUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		userId := c.Param("id")
+		userId := c.Param("ids")
 		defer cancel()
 
 		objId, _ := primitive.ObjectIDFromHex(userId)
 
+		//To delete a single task use collection.DeleteOne()method from the MongoDB Driver.
+		//Pass the filter here the objId to match the task item whose text property is set to the string arugument.
 		result, err := userCollection.DeleteOne(ctx, bson.M{"id": objId})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
 			return
 		}
 
+		//You can check the DeletedCount property on the result from the DeleteOne method to confirm if any documents were deleted.
 		if result.DeletedCount < 1 {
 			c.JSON(http.StatusNotFound,
 				responses.UserResponse{Status: http.StatusNotFound, Message: "error", Data: map[string]interface{}{"data": "User with specified ID not found!"}},
@@ -169,5 +186,89 @@ func GetAllUsers() gin.HandlerFunc {
 		c.JSON(http.StatusOK,
 			responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": users}},
 		)
+	}
+}
+
+func WithdrawBalance() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		userId := c.Param("ids")
+		var user models.User
+		var val = 0
+		defer cancel()
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		//validate the request body
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			return
+		}
+
+		//use the validator library to validate required fields
+		if validationErr := validate.Struct(&user); validationErr != nil {
+			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
+			return
+		}
+
+		update := bson.M{"balance": user.Balance - user.Withdraw, "withdraw": val}
+		result, err := userCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			return
+		}
+
+		//get updated user details
+		var updatedUser models.User
+		if result.MatchedCount == 1 {
+			err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedUser}})
+	}
+}
+
+func DepositBalance() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		userId := c.Param("ids")
+		var user models.User
+		var val = 0
+		defer cancel()
+		objId, _ := primitive.ObjectIDFromHex(userId)
+
+		//validate the request body
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			return
+		}
+
+		//use the validator library to validate required fields
+		if validationErr := validate.Struct(&user); validationErr != nil {
+			c.JSON(http.StatusBadRequest, responses.UserResponse{Status: http.StatusBadRequest, Message: "error", Data: map[string]interface{}{"data": validationErr.Error()}})
+			return
+		}
+
+		update := bson.M{"balance": user.Balance + user.Deposit, "deposit": val}
+		result, err := userCollection.UpdateOne(ctx, bson.M{"id": objId}, bson.M{"$set": update})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+			return
+		}
+
+		//get updated user details
+		var updatedUser models.User
+		if result.MatchedCount == 1 {
+			err := userCollection.FindOne(ctx, bson.M{"id": objId}).Decode(&updatedUser)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, responses.UserResponse{Status: http.StatusInternalServerError, Message: "error", Data: map[string]interface{}{"data": err.Error()}})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, responses.UserResponse{Status: http.StatusOK, Message: "success", Data: map[string]interface{}{"data": updatedUser}})
 	}
 }
